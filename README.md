@@ -5,7 +5,8 @@ Convert web data to json.
 ----
 
 ## 思路
-大体上沿用folk-api那套，再参考下yealico那套，整个Node结构出来先：
+~~大体上沿用folk-api那套，再参考下yealico那套，整个Node结构出来先：~~  
+TODO 有问题，Node跟map同质，应该可以统一。
 
 ### Node
 ```jsonc
