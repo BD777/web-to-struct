@@ -7,7 +7,7 @@ def string_to_element(content: Union[str, bytes], feature: str = "html5lib") -> 
     return BeautifulSoup(content, feature)
 
 
-def css(content: BeautifulSoup, pattern: Union[str, List[str]]) -> Optional[BeautifulSoup, List[BeautifulSoup]]:
+def css(content: BeautifulSoup, pattern: Union[str, List[str]]) -> Union[BeautifulSoup, List[BeautifulSoup], None]:
     resp = content.select(pattern)
     if len(resp) == 0:
         return None
@@ -21,14 +21,43 @@ def xpath():  # TODO
     raise NotImplementedError
 
 
-def index(content: Union[Dict, Tuple], pattern: str) -> Any:
-    # TODO
-    if isinstance(content, dict):
-        pass
-    elif isinstance(content, tuple):
-        pass
-    else:
-        raise TypeError(f"Dict or Tuple accepted in function index, found {type(content)}")
+def index(content: Union[Dict, Tuple, List], pattern: str) -> Any:
+    keys = []
+    tmp = ""
+    for c in pattern:
+        if c == ".":
+            if len(tmp) > 0:
+                keys.append(tmp)
+                tmp = ""
+        elif c == "[":
+            if len(tmp) > 0:
+                keys.append(tmp)
+                tmp = ""
+        elif c == "]":
+            if len(tmp) > 0:
+                try:
+                    keys.append(int(tmp))
+                except:
+                    keys.append(tmp)
+                tmp = ""
+        else:
+            tmp += c
+
+    if len(tmp) > 0:
+        keys.append(tmp)
+
+    value = content
+    for key in keys:
+        if isinstance(value, dict):
+            value = value[key]
+        elif isinstance(value, tuple) or isinstance(value, list):
+            if isinstance(key, str):
+                raise TypeError(f"int index is required for tuple, str found")
+            value = value[key]
+        else:
+            raise TypeError(f"Dict, Tuple or List accepted in function index, found {type(value)}")
+
+    return value
 
 
 class Parser:
@@ -36,6 +65,7 @@ class Parser:
     builtin_functions = [
         ("string-to-element", string_to_element),
         ("css", css),
+        ("index", index),
     ]
 
     def __init__(self):
@@ -78,3 +108,8 @@ class Parser:
             resp[name] = value
 
         return resp
+
+
+if __name__ == '__main__':
+    resp = index({"a": [{"b": (1, 2, 3)}]}, "a[0].b")
+    print(resp)
