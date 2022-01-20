@@ -26,7 +26,6 @@ Convert web data to json.
 | regex | String | pattern | [String, Tuple] | regex match result |
 | tuple-to-string | Tuple | pattern | String | use $1,$2,... to replace tuple elements, eg. "hello $1, $2" for tuple ("a", "b") returns "hello a, b" |
 | json-parse | String | - | Dict | parse json string to dict |
-| element-parse | String | - | Element | parse html string to Element |
 
 
 ### 其他行为
