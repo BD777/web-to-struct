@@ -1,5 +1,6 @@
 import json
 import re
+import bs4
 from typing import Any, Callable, Optional, Union, List, Dict, Tuple
 from bs4 import BeautifulSoup
 
@@ -9,14 +10,17 @@ def string_to_element(content: Union[str, bytes], feature: str = "html5lib") -> 
     return BeautifulSoup(content, feature)
 
 
-def css(content: BeautifulSoup, pattern: Union[str, List[str]]) -> Union[BeautifulSoup, List[BeautifulSoup], None]:
-    value = content.select(pattern)
-    if len(value) == 0:
-        return None
-    elif len(value) == 1:
-        return value[0]
-    else:
-        return value
+def css(content: BeautifulSoup, patterns: Union[str, List[str]]) -> Union[BeautifulSoup, List[BeautifulSoup], None]:
+    if isinstance(patterns, str):
+        patterns = [patterns]
+    for pattern in patterns:
+        value = content.select(pattern)
+        if len(value) == 0:
+            pass
+        elif len(value) == 1:
+            return value[0]
+        else:
+            return value
 
 
 def xpath():  # TODO
@@ -143,15 +147,28 @@ class Parser:
                 else:
                     resp[name] = self.parse(value, children[0])
             else:
-                resp[name] = []
-                for child in children:
-                    if isinstance(value, list):
-                        for v in value:
-                            resp[name].append(self.parse(v, child))
-                    else:
-                        resp[name].append(self.parse(value, child))
+                if isinstance(value, list):
+                    resp[name] = []
+                    for v in value:
+                        obj = {}
+                        for child in children:
+                            obj.update(self.parse(v, child))
+                        resp[name].append(obj)
+                else:
+                    obj = {}
+                    for child in children:
+                        obj.update(self.parse(value, child))
+                    resp[name] = obj
         else:
-            resp[name] = value
+
+            def _parse_final_value(_value):
+                if isinstance(_value, bs4.element.Tag):
+                    return _value.get_text(strip=True)
+                if isinstance(_value, list) or isinstance(_value, tuple):
+                    return [_parse_final_value(v) for v in _value]
+                return _value
+
+            resp[name] = _parse_final_value(value)
 
         return resp
 
@@ -161,17 +178,40 @@ if __name__ == '__main__':
     headers = {
         "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Safari/537.36",
     }
-    r = requests.get("https://detail.tmall.com/item.htm?id=637516470472", headers=headers)
-    # print(r.text)
-    # print(re.findall(r"TShop.Setup\((.*?)\);", r.text))
+    r = requests.get("https://copymanga.org/recommend", headers=headers)
 
     config = {
         "name": "data",
         "map": [
-            {"function": "regex", "kwargs": {"pattern": r"TShop.Setup\(\s*(.*?)\s*\);"}},
-            {"function": "json-parse"}
-        ]
+            {"function": "string-to-element"},
+            {"function": "css", "kwargs": {"patterns": ["#comic > .row > .exemptComicItem"]}},
+        ],
+        "children": [{
+            "name": "title",
+            "map": [
+                {"function": "css", "kwargs": {"patterns": ["p[title]"]}},
+            ]
+        }, {
+            "name": "img",
+            "map": [
+                {"function": "css", "kwargs": {"patterns": [".exemptComicItem-img > a > img"]}},
+                {"function": "attr", "kwargs": {"attr_name": "data-src"}},
+            ]
+        }, {
+            "name": "comic_id",
+            "map": [
+                {"function": "css", "kwargs": {"patterns": [".exemptComicItem-img > a"]}},
+                {"function": "attr", "kwargs": {"attr_name": "href"}},
+                {"function": "regex", "kwargs": {"pattern": r"comic/(.*?)$"}},
+            ]
+        }, {
+            "name": "author",
+            "map": [
+                {"function": "css", "kwargs": {"patterns": [".exemptComicItem-txt > span.exemptComicItem-txt-span > a[href^=\"/author\"]"]}},
+            ],
+        }]
     }
     parser = Parser()
     resp = parser.parse(r.text, config)
-    print(resp)
+    # print(resp)
+    print(json.dumps(resp, ensure_ascii=False, indent=2))
