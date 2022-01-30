@@ -62,8 +62,8 @@ def index(content: Union[Dict, Tuple, List], pattern: str) -> Any:
     return value
 
 
-def text(content: BeautifulSoup, strip: bool = True) -> str:
-    return content.get_text(strip=strip)
+def text(content: BeautifulSoup, separator: str = "", strip: bool = True) -> str:
+    return content.get_text(separator=separator, strip=strip)
 
 
 def html(content: BeautifulSoup) -> str:
@@ -88,8 +88,11 @@ def regex(content: str, pattern: str) -> Union[str, tuple, None]:
 
 def tuple_to_string(content: Tuple, pattern: str):
     value = pattern
-    for i in range(len(content)):
-        value = value.replace(f"${i + 1}", content[i])
+    if isinstance(content, list) or isinstance(content, tuple):
+        for i in range(len(content)):
+            value = value.replace(f"${i + 1}", content[i])
+    else:
+        value = value.replace("$1", str(content))
     return value
 
 
