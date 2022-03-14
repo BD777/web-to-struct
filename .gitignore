@@ -1,3 +1,5 @@
 .idea/
 .venv/
 **/*.pyc
+dist/
+web_to_struct.egg-info/

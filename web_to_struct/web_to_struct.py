@@ -150,7 +150,7 @@ class Parser:
             # print(map_func["function"])
             # print(value)
 
-        if "children" in config and len(config["children"]) > 0:
+        if value is not None and "children" in config and len(config["children"]) > 0:
             children = config["children"]
             if len(children) == 1:
                 if isinstance(value, list):
@@ -175,7 +175,7 @@ class Parser:
         else:
 
             def _parse_final_value(_value):
-                if isinstance(_value, bs4.element.Tag):
+                if isinstance(_value, (bs4.element.Tag, BeautifulSoup)):
                     return _value.get_text(strip=True)
                 if isinstance(_value, list) or isinstance(_value, tuple):
                     return [_parse_final_value(v) for v in _value]
