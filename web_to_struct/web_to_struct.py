@@ -29,10 +29,6 @@ def css(content: BeautifulSoup, patterns: Union[str, List[str]]) -> Union[Beauti
             return value
 
 
-def xpath():  # TODO
-    raise NotImplementedError
-
-
 def index(content: Union[Dict, Tuple, List], pattern: str) -> Any:
     keys = []
     tmp = ""
@@ -72,8 +68,8 @@ def index(content: Union[Dict, Tuple, List], pattern: str) -> Any:
     return value
 
 
-def text(content: BeautifulSoup, strip: bool = True) -> str:
-    return content.get_text(strip=strip)
+def text(content: BeautifulSoup, separator: str = "", strip: bool = True) -> str:
+    return content.get_text(separator=separator, strip=strip)
 
 
 def html(content: BeautifulSoup) -> str:
@@ -106,12 +102,15 @@ def regex(content: str, pattern: str):
 
 def tuple_to_string(content: Tuple, pattern: str):
     value = pattern
-    for i in range(len(content)):
-        value = value.replace(f"${i + 1}", content[i])
+    if isinstance(content, list) or isinstance(content, tuple):
+        for i in range(len(content)):
+            value = value.replace(f"${i + 1}", content[i])
+    else:
+        value = value.replace("$1", str(content))
     return value
 
 
-def json_parse(content: str):
+def json_parse(content: str) -> Union[Dict, List]:
     return json.loads(content.strip())
 
 
@@ -185,47 +184,3 @@ class Parser:
             resp[name] = _parse_final_value(value)
 
         return resp
-
-
-if __name__ == '__main__':
-    import requests
-    headers = {
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Safari/537.36",
-    }
-    r = requests.get("https://copymanga.org/recommend", headers=headers)
-
-    config = {
-        "name": "data",
-        "map": [
-            {"function": "string-to-element"},
-            {"function": "css", "kwargs": {"patterns": ["#comic > .row > .exemptComicItem"]}},
-        ],
-        "children": [{
-            "name": "title",
-            "map": [
-                {"function": "css", "kwargs": {"patterns": ["p[title]"]}},
-            ]
-        }, {
-            "name": "img",
-            "map": [
-                {"function": "css", "kwargs": {"patterns": [".exemptComicItem-img > a > img"]}},
-                {"function": "attr", "kwargs": {"attr_name": "data-src"}},
-            ]
-        }, {
-            "name": "comic_id",
-            "map": [
-                {"function": "css", "kwargs": {"patterns": [".exemptComicItem-img > a"]}},
-                {"function": "attr", "kwargs": {"attr_name": "href"}},
-                {"function": "regex", "kwargs": {"pattern": r"comic/(.*?)$"}},
-            ]
-        }, {
-            "name": "author",
-            "map": [
-                {"function": "css", "kwargs": {"patterns": [".exemptComicItem-txt > span.exemptComicItem-txt-span > a[href^=\"/author\"]"]}},
-            ],
-        }]
-    }
-    parser = Parser()
-    resp = parser.parse(r.text, config)
-    # print(resp)
-    print(json.dumps(resp, ensure_ascii=False, indent=2))
