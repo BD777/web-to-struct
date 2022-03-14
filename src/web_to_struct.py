@@ -1,3 +1,5 @@
+import sys
+import warnings
 import json
 import re
 import bs4
@@ -11,6 +13,10 @@ def string_to_element(content: Union[str, bytes], feature: str = "html5lib") -> 
 
 
 def css(content: BeautifulSoup, patterns: Union[str, List[str]]) -> Union[BeautifulSoup, List[BeautifulSoup], None]:
+    if "select" not in dir(content):
+        warnings.warn(f"invalid content type for {sys._getframe().f_code.co_name}: {type(content)}, patterns: {patterns}, returns None")
+        return None
+
     if isinstance(patterns, str):
         patterns = [patterns]
     for pattern in patterns:
@@ -75,12 +81,20 @@ def html(content: BeautifulSoup) -> str:
 
 
 def attr(content: BeautifulSoup, attr_name: str) -> Any:
+    if "has_attr" not in dir(content):
+        warnings.warn(f"invalid content type for {sys._getframe().f_code.co_name}: {type(content)}, attr_name: {attr_name}, returns None")
+        return None
+
     if content.has_attr(attr_name):
         return content[attr_name]
     return None
 
 
 def regex(content: str, pattern: str):
+    if not isinstance(content, (bytes, str)):
+        warnings.warn(f"invalid content type for {sys._getframe().f_code.co_name}: {type(content)}, pattern: {pattern}, returns None")
+        return None
+
     value = re.findall(pattern, content)
     if len(value) == 0:
         return None
